@@ -1,0 +1,18 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     myshell
+relocations:
+  - { offsetInCU: 0x26, offset: 0x26, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x0, symBinAddr: 0x1000023EC, symSize: 0x9E0 }
+  - { offsetInCU: 0x4D, offset: 0x4D, size: 0x8, addend: 0x0, symName: _jobs, symObjAddr: 0x3ED0, symBinAddr: 0x100008008, symSize: 0x0 }
+  - { offsetInCU: 0x101, offset: 0x101, size: 0x8, addend: 0x0, symName: _next_jid, symObjAddr: 0x1A34, symBinAddr: 0x100008000, symSize: 0x0 }
+  - { offsetInCU: 0x117, offset: 0x117, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x0, symBinAddr: 0x1000023EC, symSize: 0x9E0 }
+  - { offsetInCU: 0x38E, offset: 0x38E, size: 0x8, addend: 0x0, symName: _sigchld_handler, symObjAddr: 0x9E0, symBinAddr: 0x100002DCC, symSize: 0x140 }
+  - { offsetInCU: 0x3EA, offset: 0x3EA, size: 0x8, addend: 0x0, symName: _tokenize, symObjAddr: 0xB20, symBinAddr: 0x100002F0C, symSize: 0x30C }
+  - { offsetInCU: 0x450, offset: 0x450, size: 0x8, addend: 0x0, symName: _find_job_by_jid, symObjAddr: 0xE2C, symBinAddr: 0x100003218, symSize: 0x98 }
+  - { offsetInCU: 0x494, offset: 0x494, size: 0x8, addend: 0x0, symName: _safe_waitpid, symObjAddr: 0xEC4, symBinAddr: 0x1000032B0, symSize: 0xA4 }
+  - { offsetInCU: 0x4E6, offset: 0x4E6, size: 0x8, addend: 0x0, symName: _remove_job, symObjAddr: 0xF68, symBinAddr: 0x100003354, symSize: 0x68 }
+  - { offsetInCU: 0x50A, offset: 0x50A, size: 0x8, addend: 0x0, symName: _exec_pipe, symObjAddr: 0xFD0, symBinAddr: 0x1000033BC, symSize: 0x2E4 }
+  - { offsetInCU: 0x578, offset: 0x578, size: 0x8, addend: 0x0, symName: _handle_redirection, symObjAddr: 0x12B4, symBinAddr: 0x1000036A0, symSize: 0x440 }
+  - { offsetInCU: 0x665, offset: 0x665, size: 0x8, addend: 0x0, symName: _add_job, symObjAddr: 0x16F4, symBinAddr: 0x100003AE0, symSize: 0x148 }
+  - { offsetInCU: 0x6B7, offset: 0x6B7, size: 0x8, addend: 0x0, symName: _find_job_by_pid, symObjAddr: 0x183C, symBinAddr: 0x100003C28, symSize: 0x9C }
+...
