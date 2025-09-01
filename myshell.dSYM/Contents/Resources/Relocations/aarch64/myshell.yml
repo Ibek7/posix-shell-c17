@@ -2,19 +2,20 @@
 triple:          'arm64-apple-darwin'
 binary-path:     myshell
 relocations:
-  - { offsetInCU: 0x26, offset: 0x26, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x0, symBinAddr: 0x100001734, symSize: 0xA80 }
-  - { offsetInCU: 0x4D, offset: 0x4D, size: 0x8, addend: 0x0, symName: _jobs, symObjAddr: 0x5568, symBinAddr: 0x100008008, symSize: 0x0 }
-  - { offsetInCU: 0x101, offset: 0x101, size: 0x8, addend: 0x0, symName: _last_status, symObjAddr: 0x5B68, symBinAddr: 0x100008608, symSize: 0x0 }
-  - { offsetInCU: 0x116, offset: 0x116, size: 0x8, addend: 0x0, symName: _next_jid, symObjAddr: 0x2698, symBinAddr: 0x100008000, symSize: 0x0 }
-  - { offsetInCU: 0x133, offset: 0x133, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x0, symBinAddr: 0x100001734, symSize: 0xA80 }
-  - { offsetInCU: 0x3C6, offset: 0x3C6, size: 0x8, addend: 0x0, symName: _sigchld_handler, symObjAddr: 0xA80, symBinAddr: 0x1000021B4, symSize: 0x140 }
-  - { offsetInCU: 0x422, offset: 0x422, size: 0x8, addend: 0x0, symName: _expand_variables, symObjAddr: 0xBC0, symBinAddr: 0x1000022F4, symSize: 0xB74 }
-  - { offsetInCU: 0x6BF, offset: 0x6BF, size: 0x8, addend: 0x0, symName: _tokenize, symObjAddr: 0x1734, symBinAddr: 0x100002E68, symSize: 0x30C }
-  - { offsetInCU: 0x725, offset: 0x725, size: 0x8, addend: 0x0, symName: _find_job_by_jid, symObjAddr: 0x1A40, symBinAddr: 0x100003174, symSize: 0x98 }
-  - { offsetInCU: 0x769, offset: 0x769, size: 0x8, addend: 0x0, symName: _safe_waitpid, symObjAddr: 0x1AD8, symBinAddr: 0x10000320C, symSize: 0xA4 }
-  - { offsetInCU: 0x7BB, offset: 0x7BB, size: 0x8, addend: 0x0, symName: _remove_job, symObjAddr: 0x1B7C, symBinAddr: 0x1000032B0, symSize: 0x68 }
-  - { offsetInCU: 0x7DF, offset: 0x7DF, size: 0x8, addend: 0x0, symName: _exec_pipe, symObjAddr: 0x1BE4, symBinAddr: 0x100003318, symSize: 0x32C }
-  - { offsetInCU: 0x84F, offset: 0x84F, size: 0x8, addend: 0x0, symName: _handle_redirection, symObjAddr: 0x1F10, symBinAddr: 0x100003644, symSize: 0x440 }
-  - { offsetInCU: 0x947, offset: 0x947, size: 0x8, addend: 0x0, symName: _add_job, symObjAddr: 0x2350, symBinAddr: 0x100003A84, symSize: 0x148 }
-  - { offsetInCU: 0x999, offset: 0x999, size: 0x8, addend: 0x0, symName: _find_job_by_pid, symObjAddr: 0x2498, symBinAddr: 0x100003BCC, symSize: 0x9C }
+  - { offsetInCU: 0x26, offset: 0x26, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x0, symBinAddr: 0x100001414, symSize: 0xCB4 }
+  - { offsetInCU: 0x4D, offset: 0x4D, size: 0x8, addend: 0x0, symName: _jobs, symObjAddr: 0x5B60, symBinAddr: 0x100008008, symSize: 0x0 }
+  - { offsetInCU: 0x101, offset: 0x101, size: 0x8, addend: 0x0, symName: _last_status, symObjAddr: 0x6160, symBinAddr: 0x100008608, symSize: 0x0 }
+  - { offsetInCU: 0x116, offset: 0x116, size: 0x8, addend: 0x0, symName: _next_jid, symObjAddr: 0x29B8, symBinAddr: 0x100008000, symSize: 0x0 }
+  - { offsetInCU: 0x133, offset: 0x133, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x0, symBinAddr: 0x100001414, symSize: 0xCB4 }
+  - { offsetInCU: 0x460, offset: 0x460, size: 0x8, addend: 0x0, symName: _sigchld_handler, symObjAddr: 0xCB4, symBinAddr: 0x1000020C8, symSize: 0x140 }
+  - { offsetInCU: 0x4BC, offset: 0x4BC, size: 0x8, addend: 0x0, symName: _cleanup_jobs, symObjAddr: 0xDF4, symBinAddr: 0x100002208, symSize: 0xC0 }
+  - { offsetInCU: 0x4EE, offset: 0x4EE, size: 0x8, addend: 0x0, symName: _expand_variables, symObjAddr: 0xEB4, symBinAddr: 0x1000022C8, symSize: 0xB74 }
+  - { offsetInCU: 0x78B, offset: 0x78B, size: 0x8, addend: 0x0, symName: _tokenize, symObjAddr: 0x1A28, symBinAddr: 0x100002E3C, symSize: 0x30C }
+  - { offsetInCU: 0x7F1, offset: 0x7F1, size: 0x8, addend: 0x0, symName: _find_job_by_jid, symObjAddr: 0x1D34, symBinAddr: 0x100003148, symSize: 0x98 }
+  - { offsetInCU: 0x835, offset: 0x835, size: 0x8, addend: 0x0, symName: _safe_waitpid, symObjAddr: 0x1DCC, symBinAddr: 0x1000031E0, symSize: 0xA4 }
+  - { offsetInCU: 0x887, offset: 0x887, size: 0x8, addend: 0x0, symName: _remove_job, symObjAddr: 0x1E70, symBinAddr: 0x100003284, symSize: 0x68 }
+  - { offsetInCU: 0x8AB, offset: 0x8AB, size: 0x8, addend: 0x0, symName: _exec_pipe, symObjAddr: 0x1ED8, symBinAddr: 0x1000032EC, symSize: 0x32C }
+  - { offsetInCU: 0x91B, offset: 0x91B, size: 0x8, addend: 0x0, symName: _handle_redirection, symObjAddr: 0x2204, symBinAddr: 0x100003618, symSize: 0x440 }
+  - { offsetInCU: 0xA13, offset: 0xA13, size: 0x8, addend: 0x0, symName: _add_job, symObjAddr: 0x2644, symBinAddr: 0x100003A58, symSize: 0x148 }
+  - { offsetInCU: 0xA65, offset: 0xA65, size: 0x8, addend: 0x0, symName: _find_job_by_pid, symObjAddr: 0x278C, symBinAddr: 0x100003BA0, symSize: 0x9C }
 ...

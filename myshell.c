@@ -64,6 +64,9 @@ static struct job *find_job_by_jid(int jid) {
     return NULL;
 }
 
+/* forward declaration so cleanup_jobs can call it */
+static void remove_job(struct job *j);
+
 static void cleanup_jobs(void) {
     for (int i = 0; i < MAX_JOBS; ++i) {
         if (jobs[i].pid != 0 && jobs[i].status == JOB_DONE) {
