@@ -1,0 +1,10 @@
+# Build artifacts
+myshell
+myshell.dSYM/
+*.o
+out.txt
+sorted.txt
+
+# Editor / OS files
+.DS_Store
+*~
