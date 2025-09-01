@@ -22,6 +22,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <signal.h>
+#include <ctype.h>
 
 #define MAX_TOKENS 128
 #define MAX_LINE 4096
@@ -38,6 +39,7 @@ struct job {
 
 static struct job jobs[MAX_JOBS];
 static int next_jid = 1;
+static int last_status = 0; // $? value
 
 static int add_job(pid_t pid, const char *cmdline) {
     for (int i = 0; i < MAX_JOBS; ++i) {
@@ -60,6 +62,15 @@ static struct job *find_job_by_pid(pid_t pid) {
 static struct job *find_job_by_jid(int jid) {
     for (int i = 0; i < MAX_JOBS; ++i) if (jobs[i].jid == jid) return &jobs[i];
     return NULL;
+}
+
+static void cleanup_jobs(void) {
+    for (int i = 0; i < MAX_JOBS; ++i) {
+        if (jobs[i].pid != 0 && jobs[i].status == JOB_DONE) {
+            // remove completed jobs from table
+            remove_job(&jobs[i]);
+        }
+    }
 }
 
 static void remove_job(struct job *j) {
@@ -96,6 +107,116 @@ static pid_t safe_waitpid(pid_t pid, int *status, int options) {
     }
     if (r == -1) perror("waitpid");
     return r;
+}
+
+// Expand environment variables in `in` into `out`. Supports $VAR and ${VAR}.
+// Does not expand inside single quotes. Expands inside double quotes.
+static void expand_variables(const char *in, char *out, size_t outsz) {
+    size_t oi = 0;
+    int in_single = 0;
+    int in_double = 0;
+    for (size_t i = 0; in[i] != '\0' && oi + 1 < outsz; ++i) {
+        char c = in[i];
+        if (c == '\'' && !in_double) {
+            in_single = !in_single;
+            out[oi++] = c;
+            continue;
+        }
+        if (c == '"' && !in_single) {
+            in_double = !in_double;
+            out[oi++] = c;
+            continue;
+        }
+        if (c == '$' && !in_single) {
+            // Special variables
+            if (in[i+1] == '$') {
+                char buf[32];
+                snprintf(buf, sizeof(buf), "%d", getpid());
+                size_t k = 0;
+                while (buf[k] && oi + 1 < outsz) out[oi++] = buf[k++];
+                i++; // skip the second $
+                continue;
+            }
+            if (in[i+1] == '?') {
+                char buf[32];
+                snprintf(buf, sizeof(buf), "%d", last_status);
+                size_t k = 0;
+                while (buf[k] && oi + 1 < outsz) out[oi++] = buf[k++];
+                i++;
+                continue;
+            }
+            // Handle ${VAR}
+            if (in[i+1] == '{') {
+                size_t j = i+2;
+                // parse name
+                while (in[j] && (isalnum((unsigned char)in[j]) || in[j] == '_')) j++;
+                size_t namelen = j - (i+2);
+                char name[256] = {0};
+                if (namelen >= sizeof(name)) namelen = sizeof(name)-1;
+                memcpy(name, &in[i+2], namelen);
+                // handle default ${VAR:-default}
+                if (in[j] == ':' && in[j+1] == '-') {
+                    size_t kpos = j+2;
+                    size_t kend = kpos;
+                    while (in[kend] && in[kend] != '}') kend++;
+                    size_t deflen = (kend > kpos) ? (kend - kpos) : 0;
+                    char defbuf[MAX_LINE];
+                    if (deflen > 0) {
+                        if (deflen >= sizeof(defbuf)) deflen = sizeof(defbuf)-1;
+                        memcpy(defbuf, &in[kpos], deflen);
+                        defbuf[deflen] = '\0';
+                    } else defbuf[0] = '\0';
+                    char defexp[MAX_LINE];
+                    expand_variables(defbuf, defexp, sizeof(defexp));
+                    char *val = getenv(name);
+                    if (val && val[0] != '\0') {
+                        size_t kk = 0; while (val[kk] && oi + 1 < outsz) out[oi++] = val[kk++];
+                    } else {
+                        size_t kk = 0; while (defexp[kk] && oi + 1 < outsz) out[oi++] = defexp[kk++];
+                    }
+                    // skip past }
+                    if (in[kend] == '}') i = kend; else i = j;
+                    continue;
+                }
+                if (in[j] == '}') {
+                    size_t len = j - (i+2);
+                    char name2[256];
+                    if (len >= sizeof(name2)) len = sizeof(name2)-1;
+                    memcpy(name2, &in[i+2], len);
+                    name2[len] = '\0';
+                    char *val = getenv(name2);
+                    if (val) {
+                        size_t k = 0;
+                        while (val[k] && oi + 1 < outsz) out[oi++] = val[k++];
+                    }
+                    i = j; // skip past }
+                    continue;
+                }
+            }
+            // Handle $VAR (letters, digits, underscore)
+            if (isalpha((unsigned char)in[i+1]) || in[i+1] == '_') {
+                size_t j = i+1;
+                while (in[j] && (isalnum((unsigned char)in[j]) || in[j] == '_')) j++;
+                size_t len = j - (i+1);
+                char name[256];
+                if (len >= sizeof(name)) len = sizeof(name)-1;
+                memcpy(name, &in[i+1], len);
+                name[len] = '\0';
+                char *val = getenv(name);
+                if (val) {
+                    size_t k = 0;
+                    while (val[k] && oi + 1 < outsz) out[oi++] = val[k++];
+                }
+                i = j-1;
+                continue;
+            }
+            // otherwise copy '$'
+            out[oi++] = '$';
+            continue;
+        }
+        out[oi++] = c;
+    }
+    out[oi] = '\0';
 }
 
 // Split a string into tokens (whitespace separated). Returns token count.
@@ -159,8 +280,8 @@ static int exec_pipe(char **left, char **right) {
 
     close(pipefd[0]); close(pipefd[1]);
     int status;
-    safe_waitpid(p1, &status, 0);
-    safe_waitpid(p2, &status, 0);
+    if (safe_waitpid(p1, &status, 0) > 0) last_status = WEXITSTATUS(status);
+    if (safe_waitpid(p2, &status, 0) > 0) last_status = WEXITSTATUS(status);
     return status;
 }
 
@@ -211,6 +332,8 @@ int main(void) {
 
     int interactive = isatty(STDIN_FILENO);
     while (1) {
+    // cleanup finished jobs periodically
+    cleanup_jobs();
         // Print prompt only when interactive
         if (interactive) {
             char cwd[1024];
@@ -241,17 +364,33 @@ int main(void) {
             }
         }
 
-        // skip empty
+    // skip empty
         char *p = line;
         while (*p == ' ' || *p == '\t') p++;
         if (*p == '\0') continue;
 
+    // Expand variables in a safe buffer before tokenizing
+    char expanded[MAX_LINE];
+    expand_variables(line, expanded, sizeof(expanded));
+
+
         // Tokenize
-        int n = tokenize(line, tokens);
+    int n = tokenize(expanded, tokens);
         if (n == 0) continue;
 
     // ignore empty tokens that can result from lone quotes like a line with just '\''
     if (tokens[0] && tokens[0][0] == '\0') continue;
+
+        // Strip surrounding quotes from tokens so arguments don't carry literal quotes
+        for (int ti = 0; tokens[ti]; ++ti) {
+            char *t = tokens[ti];
+            size_t len = strlen(t);
+            if (len >= 2 && ((t[0] == '"' && t[len-1] == '"') || (t[0] == '\'' && t[len-1] == '\''))) {
+                // shift left and overwrite trailing quote
+                memmove(t, t+1, len-2);
+                t[len-2] = '\0';
+            }
+        }
 
         // builtins: exit, cd, jobs, fg
         if (strcmp(tokens[0], "exit") == 0) {
@@ -259,7 +398,10 @@ int main(void) {
         }
         if (strcmp(tokens[0], "cd") == 0) {
             char *dir = tokens[1] ? tokens[1] : getenv("HOME");
-            if (chdir(dir) < 0) perror("chdir");
+            if (chdir(dir) < 0) perror("chdir"); else {
+                char cwd[1024];
+                if (getcwd(cwd, sizeof(cwd))) setenv("PWD", cwd, 1);
+            }
             continue;
         }
         if (strcmp(tokens[0], "jobs") == 0) {
@@ -274,21 +416,25 @@ int main(void) {
         }
         if (strcmp(tokens[0], "fg") == 0) {
             if (!tokens[1]) { fprintf(stderr, "fg: usage: fg %%jid\n"); continue; }
-            int jid = atoi(tokens[1]);
+            char *arg = tokens[1];
+            if (arg[0] == '%') arg++;
+            int jid = atoi(arg);
             struct job *j = find_job_by_jid(jid);
             if (!j) { fprintf(stderr, "fg: no such job %d\n", jid); continue; }
             // bring to foreground
             kill(j->pid, SIGCONT);
-            int st; safe_waitpid(j->pid, &st, 0);
+            int st; if (safe_waitpid(j->pid, &st, 0) > 0) last_status = WEXITSTATUS(st);
             remove_job(j);
             continue;
         }
-        if (strcmp(tokens[0], "exit") == 0) {
-            break;
-        }
-        if (strcmp(tokens[0], "cd") == 0) {
-            char *dir = tokens[1] ? tokens[1] : getenv("HOME");
-            if (chdir(dir) < 0) perror("chdir");
+        if (strcmp(tokens[0], "bg") == 0) {
+            if (!tokens[1]) { fprintf(stderr, "bg: usage: bg %%jid\n"); continue; }
+            char *arg = tokens[1]; if (arg[0] == '%') arg++;
+            int jid = atoi(arg);
+            struct job *j = find_job_by_jid(jid);
+            if (!j) { fprintf(stderr, "bg: no such job %d\n", jid); continue; }
+            kill(j->pid, SIGCONT);
+            j->status = JOB_RUNNING;
             continue;
         }
 
@@ -340,7 +486,10 @@ int main(void) {
                 else printf("[%d] %d\n", jid, pid);
             } else {
                 int status;
-                        safe_waitpid(pid, &status, 0);
+                if (safe_waitpid(pid, &status, 0) > 0) {
+                    if (WIFEXITED(status)) last_status = WEXITSTATUS(status);
+                    else if (WIFSIGNALED(status)) last_status = 128 + WTERMSIG(status);
+                }
             }
         }
     }
