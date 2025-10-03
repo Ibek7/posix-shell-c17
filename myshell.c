@@ -54,10 +54,7 @@ static int add_job(pid_t pid, const char *cmdline) {
     return -1; // no space
 }
 
-static struct job *find_job_by_pid(pid_t pid) {
-    for (int i = 0; i < MAX_JOBS; ++i) if (jobs[i].pid == pid) return &jobs[i];
-    return NULL;
-}
+// (removed unused find_job_by_pid)
 
 static struct job *find_job_by_jid(int jid) {
     for (int i = 0; i < MAX_JOBS; ++i) if (jobs[i].jid == jid) return &jobs[i];
@@ -86,25 +83,20 @@ static void remove_job(struct job *j) {
 // SIGCHLD handler: only update status for background jobs, don't reap foreground processes
 static void sigchld_handler(int sig) {
     (void)sig;
-    pid_t pid;
     int status;
-    // Use WNOHANG to avoid blocking, and check each child
-    while ((pid = waitpid(-1, &status, WNOHANG | WUNTRACED | WCONTINUED)) > 0) {
-        struct job *j = find_job_by_pid(pid);
-        if (j) {
-            // This is a background job - we can safely reap it and update status
-            if (WIFEXITED(status) || WIFSIGNALED(status)) {
-                j->status = JOB_DONE;
-            } else if (WIFSTOPPED(status)) {
-                j->status = JOB_STOPPED;
-            } else if (WIFCONTINUED(status)) {
-                j->status = JOB_RUNNING;
+    // Only check known background jobs to avoid reaping foreground children
+    for (int i = 0; i < MAX_JOBS; ++i) {
+        if (jobs[i].pid != 0) {
+            pid_t pid = waitpid(jobs[i].pid, &status, WNOHANG | WUNTRACED | WCONTINUED);
+            if (pid > 0) {
+                if (WIFEXITED(status) || WIFSIGNALED(status)) {
+                    jobs[i].status = JOB_DONE;
+                } else if (WIFSTOPPED(status)) {
+                    jobs[i].status = JOB_STOPPED;
+                } else if (WIFCONTINUED(status)) {
+                    jobs[i].status = JOB_RUNNING;
+                }
             }
-        } else {
-            // This is a foreground process - we need to "unreap" it
-            // Since we can't unreap, we'll store the status for the main wait
-            // For now, let the main shell handle foreground processes entirely
-            // by not installing SIGCHLD handler for foreground processes
         }
     }
 }
@@ -477,7 +469,13 @@ int main(void) {
     for (; tokens[i]; ++i) argv[i] = tokens[i];
     argv[i] = NULL;
 
-        // Before exec, handle redirection by forking a child that sets FDs then exec
+        // Before exec, block SIGCHLD to avoid race with handler reaping the child
+        sigset_t chld_mask, prev_mask;
+        sigemptyset(&chld_mask);
+        sigaddset(&chld_mask, SIGCHLD);
+        sigprocmask(SIG_BLOCK, &chld_mask, &prev_mask);
+
+        // Fork the child which will exec the command
         pid_t pid = fork();
         if (pid < 0) { perror("fork"); continue; }
         if (pid == 0) {
@@ -485,6 +483,8 @@ int main(void) {
             // restore default signals in child
             signal(SIGINT, SIG_DFL);
             signal(SIGQUIT, SIG_DFL);
+            // Unblock signals in the child
+            sigprocmask(SIG_SETMASK, &prev_mask, NULL);
             handle_redirection(argv);
             if (argv[0] == NULL) _exit(0);
             execvp(argv[0], argv);
@@ -495,20 +495,15 @@ int main(void) {
                 int jid = add_job(pid, line);
                 if (jid < 0) fprintf(stderr, "myshell: job table full\n");
                 else printf("[%d] %d\n", jid, pid);
+                // Restore parent's original signal mask
+                sigprocmask(SIG_SETMASK, &prev_mask, NULL);
             } else {
-                // Foreground process - block SIGCHLD while waiting to prevent handler interference
-                sigset_t mask, prev_mask;
-                sigemptyset(&mask);
-                sigaddset(&mask, SIGCHLD);
-                sigprocmask(SIG_BLOCK, &mask, &prev_mask);
-                
                 int status;
                 if (waitpid(pid, &status, 0) > 0) {
                     if (WIFEXITED(status)) last_status = WEXITSTATUS(status);
                     else if (WIFSIGNALED(status)) last_status = 128 + WTERMSIG(status);
                 }
-                
-                // Restore signal mask
+                // Restore parent's original signal mask
                 sigprocmask(SIG_SETMASK, &prev_mask, NULL);
             }
         }
