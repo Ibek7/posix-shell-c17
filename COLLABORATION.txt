@@ -1,6 +1,12 @@
-Collaboration statement
+COLLABORATION STATEMENT
 
-I, the author, completed this project independently without external collaborators.
+Course: CSC428 (Operating Systems)
+Assignment: Simple POSIX Shell Implementation
+Student: Bekam Guta
+Date: September 1, 2025
 
-Name: Bekam Guta
-Date: 2025-09-01
+I certify that this work is entirely my own and that I have not collaborated with any other students on this assignment. All code was written independently by me, following the project requirements and using only publicly available documentation and resources as cited in the README.md file.
+
+The implementation uses standard POSIX system calls and follows established shell design patterns found in academic literature and official documentation, but all code was written from scratch without copying from existing shell implementations.
+
+Signature: Bekam Guta
